@@ -29,18 +29,59 @@ export const getVideoInfo = async (url) => {
 };
 
 import { spawn } from 'child_process';
+import os from 'os';
+import { randomUUID } from 'crypto';
+import fs from 'fs';
 
-export const streamMedia = (url, formatId) => {
-  // Use formatId or fallback to best
-  const formatArg = formatId || 'best';
-  
-  // Spawn yt-dlp to output to stdout
-  const ytDlpProcess = spawn(ytDlpPath, [
-    '-f', formatArg,
-    '--no-warnings',
-    '-o', '-', // output to stdout
-    url
-  ]);
+export const downloadMediaToTemp = (url, formatId, type, quality) => {
+  return new Promise((resolve, reject) => {
+    const tempDir = os.tmpdir();
+    const uniqueId = randomUUID();
+    let tempFile = path.join(tempDir, `streamdrop_${uniqueId}`);
+    
+    // We don't set extension because yt-dlp will append it
+    let args = [
+      '--no-warnings',
+      '--no-playlist'
+    ];
 
-  return ytDlpProcess;
+    if (type === 'audio') {
+      args.push('-f', 'bestaudio/best');
+      args.push('--extract-audio', '--audio-format', 'mp3');
+      if (quality) {
+        args.push('--audio-quality', quality); // e.g. 128K, 320K
+      }
+      tempFile += '.mp3';
+      args.push('-o', tempFile);
+    } else {
+      args.push('-f', formatId || 'best');
+      tempFile += '.%(ext)s';
+      args.push('-o', tempFile);
+    }
+    
+    args.push(url);
+
+    const ytDlpProcess = spawn(ytDlpPath, args);
+
+    ytDlpProcess.stderr.on('data', (data) => {
+      console.log('yt-dlp stderr:', data.toString());
+    });
+
+    ytDlpProcess.on('close', (code) => {
+      if (code === 0) {
+        // Find the actual file generated since yt-dlp appends the extension
+        fs.readdir(tempDir, (err, files) => {
+          if (err) return reject(err);
+          const generatedFile = files.find(f => f.startsWith(`streamdrop_${uniqueId}`));
+          if (generatedFile) {
+            resolve(path.join(tempDir, generatedFile));
+          } else {
+            reject(new Error('File not found after download'));
+          }
+        });
+      } else {
+        reject(new Error(`yt-dlp process exited with code ${code}`));
+      }
+    });
+  });
 };

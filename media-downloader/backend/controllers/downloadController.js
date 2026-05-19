@@ -69,30 +69,38 @@ export const getMediaInfo = async (req, res, next) => {
 
 export const downloadFile = async (req, res) => {
   try {
-    const { url, format, ext = 'mp4' } = req.body;
+    const { url, format, ext, type, quality, title } = req.body; 
     
     if (!url) {
       return res.status(400).json({ success: false, error: 'URL is required.' });
     }
 
-    const filename = `streamdrop_download_${Date.now()}.${ext}`;
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Content-Type', 'application/octet-stream');
+    const { downloadMediaToTemp } = await import('../services/ytdlpService.js');
+    const fs = await import('fs/promises');
 
-    const ytProcess = (await import('../services/ytdlpService.js')).streamMedia(url, format);
+    const filePath = await downloadMediaToTemp(url, format, type, quality);
     
-    ytProcess.stdout.pipe(res);
+    const finalExt = type === 'audio' ? 'mp3' : (filePath.split('.').pop() || ext || 'mp4');
+    const safeTitle = (title || 'streamdrop_download').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const filename = `${safeTitle}_${Date.now()}.${finalExt}`;
     
-    ytProcess.stderr.on('data', (data) => {
-      console.log('yt-dlp stderr:', data.toString());
-    });
+    if (type === 'audio') {
+      res.setHeader('Content-Type', 'audio/mpeg');
+    }
     
-    ytProcess.on('close', (code) => {
-      if (code !== 0) {
-        console.error(`yt-dlp process exited with code ${code}`);
+    res.download(filePath, filename, async (err) => {
+      if (err) {
+        console.error('Error sending file:', err);
         if (!res.headersSent) {
-          res.status(500).json({ error: 'Download failed.' });
+          res.status(500).json({ error: 'Failed to send file.' });
         }
+      }
+      
+      // Cleanup file after sending
+      try {
+        await fs.unlink(filePath);
+      } catch (e) {
+        console.error('Failed to cleanup temp file:', e);
       }
     });
 

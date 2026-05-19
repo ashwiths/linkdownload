@@ -18,13 +18,26 @@ export default function ResultCard({ videoInfo, originalUrl }) {
   const getFormatForVideo = (qualityLabel) => {
     if (!formats || !formats.video || formats.video.length === 0) return null;
     const num = qualityLabel.replace('p', '').replace('K', '000');
-    return formats.video.find(f => f.quality && f.quality.toString().includes(num)) || formats.video[0];
+    // Prefer mp4 over webm for video
+    const matching = formats.video.filter(f => f.quality && f.quality.toString().includes(num));
+    if (matching.length > 0) {
+      return matching.find(f => f.ext === 'mp4') || matching[0];
+    }
+    return formats.video[0];
   };
 
   const getFormatForAudio = (qualityLabel) => {
     if (!formats || !formats.audio || formats.audio.length === 0) return null;
     const kbps = qualityLabel.replace('kbps', '');
-    return formats.audio.find(f => (f.abr && f.abr.toString() === kbps) || (f.quality && f.quality.toString().includes(kbps))) || formats.audio[0];
+    
+    // Allow any audio format because the backend will use FFmpeg to convert it to a pristine MP3
+    const matching = formats.audio.filter(f => (f.abr && f.abr.toString() === kbps) || (f.quality && f.quality.toString().includes(kbps)));
+    
+    if (matching.length > 0) {
+      return matching[0];
+    }
+    
+    return formats.audio[0];
   };
   
   const handleFormatSelect = (fmtInfo) => {
@@ -42,14 +55,18 @@ export default function ResultCard({ videoInfo, originalUrl }) {
 
     try {
       setIsDownloading(true);
-      const ext = selectedFormat.type === 'audio' ? 'mp3' : 'mp4';
-      const blob = await downloadMediaFile(urlToDownload, selectedFormat.id, ext);
+      // We will force mp3 saving if it's audio because backend uses ffmpeg for pristine mp3 conversion
+      const ext = selectedFormat.type === 'audio' ? 'mp3' : (selectedFormat.ext || 'mp4');
+      const qualityParam = selectedFormat.type === 'audio' ? selectedFormat.label.replace('kbps', 'K') : null;
+      
+      const blob = await downloadMediaFile(urlToDownload, selectedFormat.id, ext, selectedFormat.type, qualityParam, title);
       
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = downloadUrl;
       const safeTitle = (title || 'streamdrop_media').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      
       a.download = `${safeTitle}_${selectedFormat.label}.${ext}`;
       document.body.appendChild(a);
       a.click();
@@ -293,7 +310,7 @@ export default function ResultCard({ videoInfo, originalUrl }) {
                       whileHover={isDisabled || isDownloading ? {} : { scale: 1.03, y: -2 }}
                       whileTap={isDisabled || isDownloading ? {} : { scale: 0.97 }}
                       onClick={() => {
-                          if (!isDisabled && !isDownloading) handleFormatSelect({ label: q, type: 'audio', id: actualFormat.format_id });
+                          if (!isDisabled && !isDownloading) handleFormatSelect({ label: q, type: 'audio', id: actualFormat.format_id, ext: actualFormat.ext });
                       }}
                       style={{
                         padding: '12px 10px',
@@ -348,7 +365,7 @@ export default function ResultCard({ videoInfo, originalUrl }) {
                       whileHover={isDisabled || isDownloading ? {} : { scale: 1.03, y: -2 }}
                       whileTap={isDisabled || isDownloading ? {} : { scale: 0.97 }}
                       onClick={() => {
-                          if (!isDisabled && !isDownloading) handleFormatSelect({ label: q, type: 'video', id: actualFormat.format_id });
+                          if (!isDisabled && !isDownloading) handleFormatSelect({ label: q, type: 'video', id: actualFormat.format_id, ext: actualFormat.ext });
                       }}
                       style={{
                         padding: '12px 10px',

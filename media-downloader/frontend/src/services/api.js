@@ -19,10 +19,10 @@ export const fetchVideoInfo = async (url) => {
   }
 };
 
-export const downloadMediaFile = async (url, formatId, ext) => {
+export const downloadMediaFile = async (url, formatId, ext, type, quality, title) => {
   try {
     const response = await api.post('/download/file', 
-      { url, format: formatId, ext }, 
+      { url, format: formatId, ext, type, quality, title }, 
       { responseType: 'blob' }
     );
     return response.data;
