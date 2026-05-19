@@ -216,17 +216,17 @@ export default function ResultCard({ videoInfo, originalUrl }) {
         {/* ── RIGHT SIDE: Content & Formats ── */}
         <div style={{
           flex: '1.5 1 400px',
-          padding: '24px 32px 32px 10px',
+          padding: '24px',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
         }}>
           
           {/* Metadata Header */}
-          <div style={{ marginBottom: '24px' }}>
+          <div style={{ marginBottom: '16px' }}>
             <h2 style={{
-              margin: '0 0 12px 0',
-              fontSize: '24px',
+              margin: '0 0 10px 0',
+              fontSize: '22px',
               color: '#fff',
               fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 800,
@@ -244,21 +244,21 @@ export default function ResultCard({ videoInfo, originalUrl }) {
               display: 'flex',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: '16px',
+              gap: '12px',
               color: 'rgba(255,255,255,0.6)',
-              fontSize: '13px',
+              fontSize: '12px',
               fontFamily: "'Plus Jakarta Sans', sans-serif",
               fontWeight: 500,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <FiUser style={{ color: '#ec4899', fontSize: '15px' }} />
+                <FiUser style={{ color: '#ec4899', fontSize: '14px' }} />
                 <span>{uploader || 'Unknown Uploader'}</span>
               </div>
               
               <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <FiClock style={{ color: '#f97316', fontSize: '15px' }} />
+                <FiClock style={{ color: '#f97316', fontSize: '14px' }} />
                 <span>{duration || '0:00'}</span>
               </div>
               
@@ -266,7 +266,7 @@ export default function ResultCard({ videoInfo, originalUrl }) {
                 <>
                   <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <FiEye style={{ color: '#a855f7', fontSize: '15px' }} />
+                    <FiEye style={{ color: '#a855f7', fontSize: '14px' }} />
                     <span>{Number(view_count).toLocaleString()} views</span>
                   </div>
                 </>
@@ -274,13 +274,13 @@ export default function ResultCard({ videoInfo, originalUrl }) {
             </div>
           </div>
 
-          <div style={{ height: '1px', background: 'linear-gradient(90deg, rgba(255,255,255,0.1), transparent)', marginBottom: '24px' }} />
+          <div style={{ height: '1px', background: 'linear-gradient(90deg, rgba(255,255,255,0.1), transparent)', marginBottom: '16px' }} />
 
           {/* Format Sections */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '32px' }}>
+          <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '24px', marginBottom: '24px' }}>
             
             {/* Audio Formats */}
-            <div>
+            <div style={{ flex: '1 1 180px' }}>
               <h3 style={{ 
                 fontSize: '13px', 
                 color: 'rgba(255,255,255,0.7)', 
@@ -295,10 +295,10 @@ export default function ResultCard({ videoInfo, originalUrl }) {
                 <div style={{ padding: '6px', background: 'rgba(236,72,153,0.15)', borderRadius: '8px' }}>
                   <FiMusic style={{ color: '#ec4899', fontSize: '14px' }} /> 
                 </div>
-                MP3 - Audio Quality
+                MP3 - Audio
               </h3>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {audioQualities.map((q) => {
                   const actualFormat = getFormatForAudio(q);
                   const isDisabled = !actualFormat || !actualFormat.format_id;
@@ -313,18 +313,17 @@ export default function ResultCard({ videoInfo, originalUrl }) {
                           if (!isDisabled && !isDownloading) handleFormatSelect({ label: q, type: 'audio', id: actualFormat.format_id, ext: actualFormat.ext });
                       }}
                       style={{
-                        padding: '12px 10px',
-                        borderRadius: '12px',
+                        padding: '10px 14px',
+                        borderRadius: '10px',
                         background: isSelected ? 'rgba(236,72,153,0.15)' : 'rgba(255,255,255,0.03)',
                         border: isSelected ? '1px solid rgba(236,72,153,0.5)' : '1px solid rgba(255,255,255,0.08)',
                         color: isSelected ? '#fff' : 'rgba(255,255,255,0.6)',
-                        boxShadow: isSelected ? '0 0 20px rgba(236,72,153,0.2)' : 'none',
-                        fontSize: '14px',
+                        boxShadow: isSelected ? '0 0 15px rgba(236,72,153,0.2)' : 'none',
+                        fontSize: '13px',
                         fontWeight: 600,
                         cursor: (isDisabled || isDownloading) ? 'not-allowed' : 'pointer',
                         opacity: (isDisabled || isDownloading) ? 0.3 : 1,
                         transition: 'all 0.3s ease',
-                        textAlign: 'center',
                       }}
                     >
                       {q}
@@ -335,7 +334,7 @@ export default function ResultCard({ videoInfo, originalUrl }) {
             </div>
 
             {/* Video Formats */}
-            <div>
+            <div style={{ flex: '1 1 180px' }}>
               <h3 style={{ 
                 fontSize: '13px', 
                 color: 'rgba(255,255,255,0.7)', 
@@ -350,10 +349,10 @@ export default function ResultCard({ videoInfo, originalUrl }) {
                 <div style={{ padding: '6px', background: 'rgba(249,115,22,0.15)', borderRadius: '8px' }}>
                   <FiVideo style={{ color: '#f97316', fontSize: '14px' }} /> 
                 </div>
-                MP4 - Video Quality
+                MP4 - Video
               </h3>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '10px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {videoQualities.map((q) => {
                   const actualFormat = getFormatForVideo(q);
                   const isDisabled = !actualFormat || !actualFormat.format_id;
@@ -368,18 +367,17 @@ export default function ResultCard({ videoInfo, originalUrl }) {
                           if (!isDisabled && !isDownloading) handleFormatSelect({ label: q, type: 'video', id: actualFormat.format_id, ext: actualFormat.ext });
                       }}
                       style={{
-                        padding: '12px 10px',
-                        borderRadius: '12px',
+                        padding: '10px 14px',
+                        borderRadius: '10px',
                         background: isSelected ? 'rgba(249,115,22,0.15)' : 'rgba(255,255,255,0.03)',
                         border: isSelected ? '1px solid rgba(249,115,22,0.5)' : '1px solid rgba(255,255,255,0.08)',
                         color: isSelected ? '#fff' : 'rgba(255,255,255,0.6)',
-                        boxShadow: isSelected ? '0 0 20px rgba(249,115,22,0.2)' : 'none',
-                        fontSize: '14px',
+                        boxShadow: isSelected ? '0 0 15px rgba(249,115,22,0.2)' : 'none',
+                        fontSize: '13px',
                         fontWeight: 600,
                         cursor: (isDisabled || isDownloading) ? 'not-allowed' : 'pointer',
                         opacity: (isDisabled || isDownloading) ? 0.3 : 1,
                         transition: 'all 0.3s ease',
-                        textAlign: 'center',
                       }}
                     >
                       {q}

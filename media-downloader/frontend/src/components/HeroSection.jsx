@@ -270,8 +270,8 @@ export default function HeroSection() {
             }}
           >
             {/* Input Form */}
-            <form onSubmit={handleDownload} style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-              <div style={{ flex: 1, position: 'relative' }}>
+            <form onSubmit={handleDownload} style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', alignItems: 'center' }}>
+              <div style={{ flex: '1 1 250px', position: 'relative' }}>
                 <div style={{
                   position: 'absolute',
                   top: '50%', left: '18px',
@@ -326,6 +326,7 @@ export default function HeroSection() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   gap: '10px',
                   padding: '16.5px 32px',
                   borderRadius: '14px',
@@ -339,7 +340,8 @@ export default function HeroSection() {
                   fontFamily: "'Space Grotesk', sans-serif",
                   boxShadow: '0 4px 20px rgba(249,115,22,0.35)',
                   transition: 'background 0.3s ease',
-                  flexShrink: 0,
+                  flex: '1 1 auto',
+                  minWidth: '140px',
                 }}
               >
                 Download
