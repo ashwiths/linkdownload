@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { FiZap, FiLink, FiDownload } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiZap, FiLink, FiDownload, FiAlertCircle } from 'react-icons/fi';
+import { fetchVideoInfo } from '../services/api';
+import Loader from './Loader';
+import ResultCard from './ResultCard';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 35 },
@@ -24,9 +27,28 @@ const STARS = [
 export default function HeroSection() {
   const [url, setUrl] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [videoData, setVideoData] = useState(null);
 
-  const handleDownload = (e) => {
+  const handleDownload = async (e) => {
     e.preventDefault();
+    if (!url.trim()) {
+      setError('Please enter a valid video link.');
+      return;
+    }
+    setError(null);
+    setVideoData(null);
+    setLoading(true);
+
+    try {
+      const data = await fetchVideoInfo(url);
+      setVideoData(data);
+    } catch (err) {
+      setError(err.message || 'Failed to fetch video information.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -334,6 +356,60 @@ export default function HeroSection() {
             </p>
           </div>
         </motion.div>
+
+        {/* Dynamic States */}
+        <AnimatePresence mode="wait">
+          {loading && (
+            <motion.div
+              key="loader"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              style={{ width: '100%', maxWidth: '720px', display: 'flex', justifyContent: 'center' }}
+            >
+              <Loader />
+            </motion.div>
+          )}
+
+          {error && (
+            <motion.div
+              key="error"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              style={{
+                marginTop: '20px',
+                width: '100%',
+                maxWidth: '720px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.4)',
+                borderRadius: '16px',
+                padding: '16px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                color: '#ef4444',
+                boxShadow: '0 10px 30px rgba(239, 68, 68, 0.1)',
+                backdropFilter: 'blur(10px)',
+              }}
+            >
+              <FiAlertCircle style={{ fontSize: '20px' }} />
+              <span style={{ fontSize: '15px', fontWeight: 500 }}>{error}</span>
+            </motion.div>
+          )}
+
+          {videoData && !loading && !error && (
+            <motion.div
+              key="result"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{ width: '100%', display: 'flex', justifyContent: 'center' }}
+            >
+              <ResultCard videoInfo={videoData} />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
       </div>
     </section>

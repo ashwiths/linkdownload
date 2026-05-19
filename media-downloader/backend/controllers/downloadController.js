@@ -30,7 +30,8 @@ export const getMediaInfo = async (req, res, next) => {
           ext: f.ext,
           filesize: size,
           vcodec: f.vcodec,
-          acodec: f.acodec
+          acodec: f.acodec,
+          url: f.url
         };
 
         if (f.vcodec !== 'none' && f.vcodec !== null) {
