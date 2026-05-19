@@ -66,3 +66,40 @@ export const getMediaInfo = async (req, res, next) => {
     res.status(500).json({ success: false, error: error.message || 'Failed to fetch media info.' });
   }
 };
+
+export const downloadFile = async (req, res) => {
+  try {
+    const { url, format, ext = 'mp4' } = req.body;
+    
+    if (!url) {
+      return res.status(400).json({ success: false, error: 'URL is required.' });
+    }
+
+    const filename = `streamdrop_download_${Date.now()}.${ext}`;
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+
+    const ytProcess = (await import('../services/ytdlpService.js')).streamMedia(url, format);
+    
+    ytProcess.stdout.pipe(res);
+    
+    ytProcess.stderr.on('data', (data) => {
+      console.log('yt-dlp stderr:', data.toString());
+    });
+    
+    ytProcess.on('close', (code) => {
+      if (code !== 0) {
+        console.error(`yt-dlp process exited with code ${code}`);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Download failed.' });
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Controller Error (downloadFile):', error.message);
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, error: error.message || 'Failed to download media.' });
+    }
+  }
+};

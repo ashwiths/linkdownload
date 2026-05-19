@@ -406,7 +406,7 @@ export default function HeroSection() {
               exit={{ opacity: 0 }}
               style={{ width: '100%', display: 'flex', justifyContent: 'center' }}
             >
-              <ResultCard videoInfo={videoData} />
+              <ResultCard videoInfo={videoData} originalUrl={url} />
             </motion.div>
           )}
         </AnimatePresence>

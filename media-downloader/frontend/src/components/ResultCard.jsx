@@ -1,217 +1,455 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FiClock, FiUser, FiDownload, FiMusic, FiVideo } from 'react-icons/fi';
+import { motion } from 'framer-motion';
+import { FiClock, FiUser, FiDownload, FiMusic, FiVideo, FiLoader, FiEye, FiYoutube } from 'react-icons/fi';
+import { downloadMediaFile } from '../services/api';
 
-export default function ResultCard({ videoInfo }) {
+export default function ResultCard({ videoInfo, originalUrl }) {
   const [selectedFormat, setSelectedFormat] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isHoveringThumb, setIsHoveringThumb] = useState(false);
 
   if (!videoInfo) return null;
 
-  const { title, thumbnail, duration, uploader, formats = [] } = videoInfo;
+  const { title, thumbnail, duration, uploader, view_count, formats = [] } = videoInfo;
 
-  // For demonstration, let's group formats if they are provided,
-  // or use the exact requested buttons if we need to filter them.
-  // Assuming 'formats' contains an array with 'resolution', 'ext', etc.
-  
-  // We will simulate the requested format buttons by filtering or just providing the UI 
-  // as per requirement: 360p, 720p, 1080p, MP3 Audio.
-  
-  const requestedQualities = ['360p', '720p', '1080p'];
-  
-  const handleFormatSelect = (fmt) => {
-    setSelectedFormat(fmt);
+  const videoQualities = ['360p', '720p', '1080p', '4K'];
+  const audioQualities = ['64kbps', '128kbps', '320kbps'];
+
+  const getFormatForVideo = (qualityLabel) => {
+    if (!formats || !formats.video || formats.video.length === 0) return null;
+    const num = qualityLabel.replace('p', '').replace('K', '000');
+    return formats.video.find(f => f.quality && f.quality.toString().includes(num)) || formats.video[0];
   };
 
-  const handleDownload = () => {
-    if (selectedFormat && selectedFormat.url) {
-      window.open(selectedFormat.url, '_blank');
-    } else {
-      alert("Please select a format to download or format URL is unavailable.");
+  const getFormatForAudio = (qualityLabel) => {
+    if (!formats || !formats.audio || formats.audio.length === 0) return null;
+    const kbps = qualityLabel.replace('kbps', '');
+    return formats.audio.find(f => (f.abr && f.abr.toString() === kbps) || (f.quality && f.quality.toString().includes(kbps))) || formats.audio[0];
+  };
+  
+  const handleFormatSelect = (fmtInfo) => {
+    if (isDownloading) return;
+    setSelectedFormat(fmtInfo);
+  };
+
+  const handleDownload = async () => {
+    if (!selectedFormat || !selectedFormat.id) {
+      alert("Please select a format to download.");
+      return;
     }
+    
+    const urlToDownload = originalUrl || '';
+
+    try {
+      setIsDownloading(true);
+      const ext = selectedFormat.type === 'audio' ? 'mp3' : 'mp4';
+      const blob = await downloadMediaFile(urlToDownload, selectedFormat.id, ext);
+      
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = downloadUrl;
+      const safeTitle = (title || 'streamdrop_media').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      a.download = `${safeTitle}_${selectedFormat.label}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
+
+    } catch (error) {
+      alert(`Download failed: ${error.message}`);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const getButtonText = () => {
+    if (isDownloading) return 'Preparing download...';
+    if (selectedFormat) {
+      return `Download ${selectedFormat.type === 'audio' ? 'MP3' : 'MP4'} ${selectedFormat.label}`;
+    }
+    return 'Select a format';
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
+      initial={{ opacity: 0, y: 40, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -20, scale: 0.98 }}
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       style={{
-        marginTop: '30px',
+        position: 'relative',
+        marginTop: '40px',
         width: '100%',
-        maxWidth: '820px',
-        background: 'rgba(10, 10, 15, 0.85)',
-        borderRadius: '24px',
-        border: '1px solid rgba(236,72,153,0.3)',
-        boxShadow: '0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(236,72,153,0.15)',
-        backdropFilter: 'blur(30px)',
-        WebkitBackdropFilter: 'blur(30px)',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
+        maxWidth: '900px',
       }}
     >
-      <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
-        {/* Thumbnail Section */}
-        <div style={{
-          flex: '1 1 300px',
+      {/* Ambient Outer Glow */}
+      <div 
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(135deg, rgba(249,115,22,0.3) 0%, rgba(236,72,153,0.3) 100%)',
+          filter: 'blur(40px)',
+          opacity: 0.6,
+          zIndex: -1,
+          borderRadius: '32px'
+        }}
+      />
+
+      <div
+        style={{
+          background: 'linear-gradient(145deg, rgba(14,14,20,0.85) 0%, rgba(8,8,12,0.95) 100%)',
+          borderRadius: '32px',
+          border: '1px solid rgba(255,255,255,0.05)',
+          boxShadow: '0 30px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1)',
+          backdropFilter: 'blur(40px)',
+          WebkitBackdropFilter: 'blur(40px)',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'row',
+          flexWrap: 'wrap',
           position: 'relative',
-          padding: '20px',
+        }}
+      >
+        {/* Subtle internal reflection */}
+        <div style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, height: '100%',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%)',
+          pointerEvents: 'none'
+        }} />
+
+        {/* ── LEFT SIDE: Thumbnail ── */}
+        <div style={{
+          flex: '1 1 350px',
+          padding: '24px',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
         }}>
-          <div style={{
-            position: 'relative',
-            width: '100%',
-            aspectRatio: '16/9',
-            borderRadius: '16px',
-            overflow: 'hidden',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
-          }}>
-            <img 
+          <div 
+            onMouseEnter={() => setIsHoveringThumb(true)}
+            onMouseLeave={() => setIsHoveringThumb(false)}
+            style={{
+              position: 'relative',
+              width: '100%',
+              aspectRatio: '16/9',
+              borderRadius: '20px',
+              overflow: 'hidden',
+              boxShadow: '0 15px 35px rgba(0,0,0,0.5)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              background: '#000',
+            }}
+          >
+            <motion.img 
+              animate={{ scale: isHoveringThumb ? 1.05 : 1 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               src={thumbnail || 'https://via.placeholder.com/640x360?text=No+Thumbnail'} 
-              alt={title || "Video Thumbnail"} 
+              alt={title || "Thumbnail"} 
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
+            
+            {/* Vignette Overlay */}
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'radial-gradient(circle, transparent 50%, rgba(0,0,0,0.4) 100%)',
+              pointerEvents: 'none'
+            }} />
+
+            {/* Platform Badge (Simulated YouTube) */}
+            <div style={{
+              position: 'absolute',
+              top: '12px', left: '12px',
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(8px)',
+              padding: '6px 10px',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              border: '1px solid rgba(255,255,255,0.1)',
+            }}>
+              <FiYoutube style={{ color: '#ff0000', fontSize: '14px' }} />
+              <span style={{ color: '#fff', fontSize: '11px', fontWeight: 600, letterSpacing: '0.5px' }}>YouTube</span>
+            </div>
+
             {/* Duration Badge */}
             <div style={{
               position: 'absolute',
-              bottom: '10px', right: '10px',
+              bottom: '12px', right: '12px',
               background: 'rgba(0,0,0,0.7)',
               color: '#fff',
-              padding: '4px 8px',
-              borderRadius: '8px',
+              padding: '6px 10px',
+              borderRadius: '10px',
               fontSize: '12px',
-              fontWeight: 600,
+              fontWeight: 700,
               display: 'flex',
               alignItems: 'center',
-              gap: '4px',
-              backdropFilter: 'blur(4px)',
+              gap: '6px',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255,255,255,0.1)',
             }}>
-              <FiClock /> {duration || '0:00'}
+              <FiClock style={{ color: '#f97316' }} /> {duration || '0:00'}
             </div>
           </div>
         </div>
 
-        {/* Info & Formats Section */}
+        {/* ── RIGHT SIDE: Content & Formats ── */}
         <div style={{
-          flex: '2 1 400px',
-          padding: '20px',
+          flex: '1.5 1 400px',
+          padding: '24px 32px 32px 10px',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
         }}>
-          <h2 style={{
-            margin: '0 0 10px 0',
-            fontSize: '22px',
-            color: '#fff',
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontWeight: 700,
-            lineHeight: 1.3,
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-          }}>
-            {title || 'Unknown Title'}
-          </h2>
           
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            color: 'rgba(255,255,255,0.6)',
-            fontSize: '14px',
-            marginBottom: '20px',
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-          }}>
-            <FiUser style={{ color: '#f97316' }} />
-            <span>{uploader || 'Unknown Uploader'}</span>
-          </div>
-
-          {/* Format Buttons */}
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '14px', color: '#fff', marginBottom: '12px', opacity: 0.8 }}>Available Qualities</h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+          {/* Metadata Header */}
+          <div style={{ marginBottom: '24px' }}>
+            <h2 style={{
+              margin: '0 0 12px 0',
+              fontSize: '24px',
+              color: '#fff',
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 800,
+              lineHeight: 1.3,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              textShadow: '0 2px 10px rgba(0,0,0,0.5)',
+            }}>
+              {title || 'Unknown Title'}
+            </h2>
+            
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '16px',
+              color: 'rgba(255,255,255,0.6)',
+              fontSize: '13px',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontWeight: 500,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <FiUser style={{ color: '#ec4899', fontSize: '15px' }} />
+                <span>{uploader || 'Unknown Uploader'}</span>
+              </div>
               
-              {/* If real formats exist, map them. Otherwise show requested ones as mock/placeholders or try to match them */}
-              {requestedQualities.map((q) => {
-                const isSelected = selectedFormat?.label === q;
-                return (
-                  <motion.button
-                    key={q}
-                    whileHover={{ scale: 1.05, boxShadow: '0 0 15px rgba(249,115,22,0.4)' }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleFormatSelect({ label: q, type: 'video' })}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: '12px',
-                      background: isSelected ? 'linear-gradient(135deg, #f97316 0%, #ec4899 100%)' : 'rgba(255,255,255,0.05)',
-                      border: isSelected ? '1px solid transparent' : '1px solid rgba(255,255,255,0.1)',
-                      color: isSelected ? '#fff' : 'rgba(255,255,255,0.8)',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      transition: 'all 0.3s ease',
-                    }}
-                  >
-                    <FiVideo /> {q}
-                  </motion.button>
-                );
-              })}
-
-              <motion.button
-                whileHover={{ scale: 1.05, boxShadow: '0 0 15px rgba(236,72,153,0.4)' }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => handleFormatSelect({ label: 'MP3 Audio', type: 'audio' })}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '12px',
-                  background: selectedFormat?.label === 'MP3 Audio' ? 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)' : 'rgba(255,255,255,0.05)',
-                  border: selectedFormat?.label === 'MP3 Audio' ? '1px solid transparent' : '1px solid rgba(255,255,255,0.1)',
-                  color: selectedFormat?.label === 'MP3 Audio' ? '#fff' : 'rgba(255,255,255,0.8)',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.3s ease',
-                }}
-              >
-                <FiMusic /> MP3 Audio
-              </motion.button>
+              <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <FiClock style={{ color: '#f97316', fontSize: '15px' }} />
+                <span>{duration || '0:00'}</span>
+              </div>
+              
+              {view_count && (
+                <>
+                  <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <FiEye style={{ color: '#a855f7', fontSize: '15px' }} />
+                    <span>{Number(view_count).toLocaleString()} views</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
+          <div style={{ height: '1px', background: 'linear-gradient(90deg, rgba(255,255,255,0.1), transparent)', marginBottom: '24px' }} />
+
+          {/* Format Sections */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '32px' }}>
+            
+            {/* Audio Formats */}
+            <div>
+              <h3 style={{ 
+                fontSize: '13px', 
+                color: 'rgba(255,255,255,0.7)', 
+                marginBottom: '14px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '1px'
+              }}>
+                <div style={{ padding: '6px', background: 'rgba(236,72,153,0.15)', borderRadius: '8px' }}>
+                  <FiMusic style={{ color: '#ec4899', fontSize: '14px' }} /> 
+                </div>
+                MP3 - Audio Quality
+              </h3>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px' }}>
+                {audioQualities.map((q) => {
+                  const actualFormat = getFormatForAudio(q);
+                  const isDisabled = !actualFormat || !actualFormat.format_id;
+                  const isSelected = selectedFormat?.label === q && selectedFormat?.type === 'audio';
+                  
+                  return (
+                    <motion.button
+                      key={q}
+                      whileHover={isDisabled || isDownloading ? {} : { scale: 1.03, y: -2 }}
+                      whileTap={isDisabled || isDownloading ? {} : { scale: 0.97 }}
+                      onClick={() => {
+                          if (!isDisabled && !isDownloading) handleFormatSelect({ label: q, type: 'audio', id: actualFormat.format_id });
+                      }}
+                      style={{
+                        padding: '12px 10px',
+                        borderRadius: '12px',
+                        background: isSelected ? 'rgba(236,72,153,0.15)' : 'rgba(255,255,255,0.03)',
+                        border: isSelected ? '1px solid rgba(236,72,153,0.5)' : '1px solid rgba(255,255,255,0.08)',
+                        color: isSelected ? '#fff' : 'rgba(255,255,255,0.6)',
+                        boxShadow: isSelected ? '0 0 20px rgba(236,72,153,0.2)' : 'none',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        cursor: (isDisabled || isDownloading) ? 'not-allowed' : 'pointer',
+                        opacity: (isDisabled || isDownloading) ? 0.3 : 1,
+                        transition: 'all 0.3s ease',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {q}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Video Formats */}
+            <div>
+              <h3 style={{ 
+                fontSize: '13px', 
+                color: 'rgba(255,255,255,0.7)', 
+                marginBottom: '14px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '1px'
+              }}>
+                <div style={{ padding: '6px', background: 'rgba(249,115,22,0.15)', borderRadius: '8px' }}>
+                  <FiVideo style={{ color: '#f97316', fontSize: '14px' }} /> 
+                </div>
+                MP4 - Video Quality
+              </h3>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '10px' }}>
+                {videoQualities.map((q) => {
+                  const actualFormat = getFormatForVideo(q);
+                  const isDisabled = !actualFormat || !actualFormat.format_id;
+                  const isSelected = selectedFormat?.label === q && selectedFormat?.type === 'video';
+                  
+                  return (
+                    <motion.button
+                      key={q}
+                      whileHover={isDisabled || isDownloading ? {} : { scale: 1.03, y: -2 }}
+                      whileTap={isDisabled || isDownloading ? {} : { scale: 0.97 }}
+                      onClick={() => {
+                          if (!isDisabled && !isDownloading) handleFormatSelect({ label: q, type: 'video', id: actualFormat.format_id });
+                      }}
+                      style={{
+                        padding: '12px 10px',
+                        borderRadius: '12px',
+                        background: isSelected ? 'rgba(249,115,22,0.15)' : 'rgba(255,255,255,0.03)',
+                        border: isSelected ? '1px solid rgba(249,115,22,0.5)' : '1px solid rgba(255,255,255,0.08)',
+                        color: isSelected ? '#fff' : 'rgba(255,255,255,0.6)',
+                        boxShadow: isSelected ? '0 0 20px rgba(249,115,22,0.2)' : 'none',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        cursor: (isDisabled || isDownloading) ? 'not-allowed' : 'pointer',
+                        opacity: (isDisabled || isDownloading) ? 0.3 : 1,
+                        transition: 'all 0.3s ease',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {q}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+
+          </div>
+
           {/* Action Button */}
-          <motion.button
-            whileHover={{ scale: 1.02, boxShadow: '0 0 20px rgba(249,115,22,0.4)' }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleDownload}
-            disabled={!selectedFormat}
-            style={{
-              width: '100%',
-              padding: '16px',
-              borderRadius: '14px',
-              background: selectedFormat ? 'linear-gradient(135deg, #f97316 0%, #ec4899 100%)' : 'rgba(255,255,255,0.1)',
-              border: 'none',
-              color: selectedFormat ? '#fff' : 'rgba(255,255,255,0.4)',
-              fontSize: '16px',
-              fontWeight: 700,
-              cursor: selectedFormat ? 'pointer' : 'not-allowed',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              fontFamily: "'Space Grotesk', sans-serif",
-              transition: 'all 0.3s ease',
-            }}
-          >
-            <FiDownload style={{ fontSize: '18px' }} />
-            {selectedFormat ? `Download ${selectedFormat.label}` : 'Select a format'}
-          </motion.button>
+          <div style={{ position: 'relative' }}>
+            {/* Ambient animated glow for the button when a format is selected */}
+            {selectedFormat && !isDownloading && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0.4, 0.8, 0.4] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                style={{
+                  position: 'absolute',
+                  inset: '-4px',
+                  background: 'linear-gradient(90deg, #f97316, #ec4899, #a855f7)',
+                  filter: 'blur(15px)',
+                  borderRadius: '16px',
+                  zIndex: 0,
+                }}
+              />
+            )}
+            
+            <motion.button
+              whileHover={(!selectedFormat || isDownloading) ? {} : { scale: 1.02 }}
+              whileTap={(!selectedFormat || isDownloading) ? {} : { scale: 0.98 }}
+              onClick={handleDownload}
+              disabled={!selectedFormat || isDownloading}
+              style={{
+                position: 'relative',
+                zIndex: 1,
+                width: '100%',
+                padding: '18px',
+                borderRadius: '16px',
+                background: selectedFormat 
+                  ? 'linear-gradient(135deg, #f97316 0%, #ec4899 50%, #8b5cf6 100%)' 
+                  : 'rgba(255,255,255,0.05)',
+                backgroundSize: '200% 200%',
+                border: selectedFormat ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(255,255,255,0.1)',
+                color: selectedFormat ? '#fff' : 'rgba(255,255,255,0.3)',
+                fontSize: '16px',
+                fontWeight: 700,
+                cursor: (!selectedFormat || isDownloading) ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px',
+                fontFamily: "'Space Grotesk', sans-serif",
+                letterSpacing: '0.5px',
+                transition: 'all 0.3s ease',
+                opacity: isDownloading ? 0.8 : 1,
+                boxShadow: selectedFormat ? '0 10px 30px rgba(236,72,153,0.3), inset 0 2px 0 rgba(255,255,255,0.2)' : 'none',
+              }}
+            >
+              {isDownloading ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                  style={{ display: 'flex' }}
+                >
+                  <FiLoader style={{ fontSize: '22px' }} />
+                </motion.div>
+              ) : (
+                <FiDownload style={{ fontSize: '20px' }} />
+              )}
+              {getButtonText()}
+              
+              {/* Button inner shine effect */}
+              {selectedFormat && !isDownloading && (
+                <div style={{
+                  position: 'absolute',
+                  top: 0, left: 0, width: '100%', height: '50%',
+                  background: 'linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 100%)',
+                  borderRadius: '16px 16px 0 0',
+                  pointerEvents: 'none',
+                }} />
+              )}
+            </motion.button>
+          </div>
+
         </div>
       </div>
     </motion.div>

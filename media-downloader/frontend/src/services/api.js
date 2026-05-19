@@ -18,3 +18,24 @@ export const fetchVideoInfo = async (url) => {
     throw new Error('Network error or server is down. Please try again.');
   }
 };
+
+export const downloadMediaFile = async (url, formatId, ext) => {
+  try {
+    const response = await api.post('/download/file', 
+      { url, format: formatId, ext }, 
+      { responseType: 'blob' }
+    );
+    return response.data;
+  } catch (error) {
+    if (error.response && error.response.data instanceof Blob) {
+      const text = await error.response.data.text();
+      try {
+        const json = JSON.parse(text);
+        throw new Error(json.error || 'Failed to download file.');
+      } catch (e) {
+        throw new Error('Failed to download file.');
+      }
+    }
+    throw new Error('Network error during download.');
+  }
+};

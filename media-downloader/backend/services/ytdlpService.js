@@ -27,3 +27,20 @@ export const getVideoInfo = async (url) => {
     throw new Error('Failed to fetch video info or invalid URL.');
   }
 };
+
+import { spawn } from 'child_process';
+
+export const streamMedia = (url, formatId) => {
+  // Use formatId or fallback to best
+  const formatArg = formatId || 'best';
+  
+  // Spawn yt-dlp to output to stdout
+  const ytDlpProcess = spawn(ytDlpPath, [
+    '-f', formatArg,
+    '--no-warnings',
+    '-o', '-', // output to stdout
+    url
+  ]);
+
+  return ytDlpProcess;
+};
