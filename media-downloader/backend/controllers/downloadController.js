@@ -1,61 +1,67 @@
-import * as downloadService from '../services/downloadService.js';
+import { getVideoInfo } from '../services/ytdlpService.js';
 import { isValidUrl } from '../utils/helper.js';
 
-/**
- * Analyze the media link and return metadata (title, formats, thumbnail, etc.)
- */
-export const analyzeMedia = async (req, res, next) => {
+export const getMediaInfo = async (req, res, next) => {
   try {
     const { url } = req.body;
 
     if (!url) {
-      return res.status(400).json({ error: 'URL is required.' });
+      return res.status(400).json({ success: false, error: 'URL is required.' });
     }
 
     if (!isValidUrl(url)) {
-      return res.status(400).json({ error: 'Please provide a valid URL.' });
+      return res.status(400).json({ success: false, error: 'Please provide a valid URL.' });
     }
 
-    const metadata = await downloadService.extractMetadata(url);
-    res.status(200).json(metadata);
-  } catch (error) {
-    console.error('Controller Error (analyzeMedia):', error);
-    res.status(500).json({ error: 'Failed to analyze url. Please try again.' });
-  }
-};
+    const info = await getVideoInfo(url);
 
-/**
- * Initiate downloading and pipe the media stream back to the client
- */
-export const startDownload = async (req, res, next) => {
-  try {
-    const { url, formatId, type } = req.body;
+    // Parse formats
+    const videoFormats = [];
+    const audioFormats = [];
 
-    if (!url || !formatId) {
-      return res.status(400).json({ error: 'URL and format selection are required.' });
+    if (info.formats && Array.isArray(info.formats)) {
+      info.formats.forEach(f => {
+        // Skip formats that don't have a reliable filesize or video/audio codec
+        const size = f.filesize || f.filesize_approx || null;
+        
+        const formatObj = {
+          format_id: f.format_id,
+          quality: f.resolution || f.format_note || 'Unknown',
+          ext: f.ext,
+          filesize: size,
+          vcodec: f.vcodec,
+          acodec: f.acodec
+        };
+
+        if (f.vcodec !== 'none' && f.vcodec !== null) {
+          // Video format (may or may not contain audio, typically we want ones with audio or we just list all)
+          videoFormats.push({
+            ...formatObj,
+            type: 'video'
+          });
+        } else if (f.acodec !== 'none' && f.acodec !== null) {
+          // Audio only format
+          audioFormats.push({
+            ...formatObj,
+            type: 'audio'
+          });
+        }
+      });
     }
 
-    // Call service to get the stream and metadata
-    const { stream, filename, contentType } = await downloadService.getDownloadStream(url, formatId, type);
-
-    // Set response headers to force download behavior
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Content-Type', contentType);
-
-    // Pipe the media stream directly to client
-    stream.pipe(res);
-
-    stream.on('error', (err) => {
-      console.error('Stream piping error:', err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Download stream interrupted.' });
+    res.status(200).json({
+      success: true,
+      title: info.title || '',
+      thumbnail: info.thumbnail || '',
+      duration: info.duration_string || info.duration || '',
+      formats: {
+        video: videoFormats,
+        audio: audioFormats
       }
     });
 
   } catch (error) {
-    console.error('Controller Error (startDownload):', error);
-    if (!res.headersSent) {
-      res.status(500).json({ error: 'Failed to start download. Please verify inputs.' });
-    }
+    console.error('Controller Error (getMediaInfo):', error.message);
+    res.status(500).json({ success: false, error: error.message || 'Failed to fetch media info.' });
   }
 };

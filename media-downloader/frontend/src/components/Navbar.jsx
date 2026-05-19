@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiDownload, FiSun, FiMenu, FiX } from 'react-icons/fi';
-import { FaGithub } from 'react-icons/fa';
+import { FiDownload, FiMenu, FiX } from 'react-icons/fi';
 
 const NAV_LINKS = ['Home', 'How It Works', 'Supported', 'Features', 'FAQ'];
+
+const LINK_MAP = {
+  'Home': 'home',
+  'How It Works': 'how-it-works',
+  'Supported': 'supported',
+  'Features': 'features',
+  'FAQ': 'faq'
+};
 
 export default function Navbar() {
   const [active, setActive] = useState('Home');
@@ -11,40 +18,83 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 10);
+    const fn = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', fn, { passive: true });
     return () => window.removeEventListener('scroll', fn);
   }, []);
+
+  // Sync scroll positions using getBoundingClientRect to calculate true document-relative positions
+  useEffect(() => {
+    const handleActiveSection = () => {
+      const scrollPos = window.scrollY + 140; // Trigger threshold
+      let currentSection = 'Home';
+
+      for (const [name, id] of Object.entries(LINK_MAP)) {
+        const el = document.getElementById(id);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          const scrollTop = window.scrollY || document.documentElement.scrollTop;
+          const trueOffsetTop = rect.top + scrollTop;
+          const height = el.offsetHeight;
+
+          if (scrollPos >= trueOffsetTop && scrollPos < trueOffsetTop + height) {
+            currentSection = name;
+          }
+        }
+      }
+      setActive(currentSection);
+    };
+
+    window.addEventListener('scroll', handleActiveSection, { passive: true });
+    return () => window.removeEventListener('scroll', handleActiveSection);
+  }, []);
+
+  const handleScrollTo = (name) => {
+    const id = LINK_MAP[name];
+    const element = document.getElementById(id);
+    if (element) {
+      const rect = element.getBoundingClientRect();
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const targetTop = rect.top + scrollTop - 80; // Offset for fixed navbar
+
+      window.scrollTo({
+        top: targetTop,
+        behavior: 'smooth'
+      });
+      setActive(name);
+    }
+  };
 
   const navStyle = {
     position: 'fixed',
     top: 0, left: 0, right: 0,
     zIndex: 100,
-    background: scrolled ? 'rgba(10,10,10,0.95)' : 'rgba(10,10,10,0.55)',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
-    borderBottom: '1px solid rgba(255,255,255,0.06)',
-    transition: 'background 0.3s ease',
-    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    background: scrolled ? 'rgba(6, 6, 8, 0.85)' : 'rgba(6, 6, 8, 0.4)',
+    backdropFilter: 'blur(24px)',
+    WebkitBackdropFilter: 'blur(24px)',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+    transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+    fontFamily: "'Space Grotesk', sans-serif",
   };
 
   const innerStyle = {
     maxWidth: '1200px',
     margin: '0 auto',
-    padding: '0 32px',
-    height: '64px',
+    padding: '0 24px',
+    height: '72px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
   };
 
   const logoIconStyle = {
-    width: '36px', height: '36px',
-    borderRadius: '10px',
+    width: '38px', height: '38px',
+    borderRadius: '11px',
     background: 'linear-gradient(135deg, #f97316 0%, #ec4899 100%)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    boxShadow: '0 0 16px rgba(249,115,22,0.35)',
+    boxShadow: '0 0 20px rgba(249,115,22,0.4)',
     flexShrink: 0,
+    cursor: 'pointer',
   };
 
   return (
@@ -52,11 +102,14 @@ export default function Navbar() {
       <div style={innerStyle}>
 
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div 
+          onClick={() => handleScrollTo('Home')} 
+          style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+        >
           <div style={logoIconStyle}>
-            <FiDownload style={{ color: '#fff', fontSize: '17px', strokeWidth: 2.5 }} />
+            <FiDownload style={{ color: '#fff', fontSize: '18px', strokeWidth: 2.5 }} />
           </div>
-          <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em' }}>
+          <span style={{ fontSize: '21px', fontWeight: 700, letterSpacing: '-0.03em' }}>
             <span style={{ color: '#ffffff' }}>Stream</span>
             <span style={{ color: '#f97316' }}>Drop</span>
           </span>
@@ -64,38 +117,39 @@ export default function Navbar() {
 
         {/* Center Nav — Desktop */}
         <ul style={{
-          display: 'flex', alignItems: 'center', gap: '4px',
+          display: 'flex', alignItems: 'center', gap: '8px',
           listStyle: 'none', margin: 0, padding: 0,
         }}
           className="hidden md:flex"
         >
           {NAV_LINKS.map((link) => (
-            <li key={link}>
+            <li key={link} style={{ position: 'relative' }}>
               <button
-                onClick={() => setActive(link)}
+                onClick={() => handleScrollTo(link)}
                 style={{
                   position: 'relative',
                   padding: '8px 16px',
-                  fontSize: '14px',
+                  fontSize: '14.5px',
                   fontWeight: 500,
-                  color: active === link ? '#ffffff' : 'rgba(255,255,255,0.55)',
+                  color: active === link ? '#ffffff' : 'rgba(255,255,255,0.6)',
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  transition: 'color 0.2s',
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  transition: 'color 0.3s ease',
                 }}
               >
                 {link}
                 {active === link && (
                   <motion.div
-                    layoutId="nav-ul"
+                    layoutId="navbar-indicator"
                     style={{
                       position: 'absolute',
-                      bottom: 0, left: '16px', right: '16px',
+                      bottom: '-4px', left: '16px', right: '16px',
                       height: '2px',
                       borderRadius: '2px',
                       background: 'linear-gradient(90deg, #f97316, #ec4899)',
+                      boxShadow: '0 0 10px rgba(249,115,22,0.5)',
                     }}
                   />
                 )}
@@ -104,36 +158,58 @@ export default function Navbar() {
           ))}
         </ul>
 
-        {/* Right */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button style={{
-            padding: '8px', background: 'none', border: 'none',
-            color: 'rgba(255,255,255,0.4)', cursor: 'pointer', borderRadius: '8px',
-          }}>
-            <FiSun style={{ fontSize: '18px' }} />
-          </button>
+        {/* Right Concept */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          
+          {/* Floating Status Indicator — Desktop */}
+          <div 
+            className="hidden lg:flex"
+            style={{
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 14px',
+              borderRadius: '999px',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              fontSize: '13px',
+              fontWeight: 500,
+              color: 'rgba(255, 255, 255, 0.7)',
+            }}
+          >
+            <motion.span 
+              animate={{ opacity: [0.3, 1, 0.3] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: '#10b981',
+                boxShadow: '0 0 8px #10b981',
+              }}
+            />
+            Fast Servers Online
+          </div>
 
-          <motion.a
-            href="https://github.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            whileHover={{ scale: 1.05 }}
+          {/* Animated CTA Button */}
+          <motion.button
+            onClick={() => handleScrollTo('Home')}
+            whileHover={{ scale: 1.05, boxShadow: '0 0 25px rgba(249, 115, 22, 0.45)' }}
             whileTap={{ scale: 0.95 }}
             style={{
-              display: 'flex', alignItems: 'center', gap: '8px',
               padding: '9px 20px',
               borderRadius: '999px',
               background: 'linear-gradient(135deg, #f97316 0%, #ec4899 100%)',
               color: '#fff',
-              fontSize: '14px', fontWeight: 700,
-              textDecoration: 'none',
-              boxShadow: '0 0 20px rgba(249,115,22,0.25)',
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: '14px',
+              fontWeight: 600,
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 4px 15px rgba(249,115,22,0.25)',
+              fontFamily: "'Space Grotesk', sans-serif",
             }}
           >
-            <FaGithub style={{ fontSize: '15px' }} />
-            GitHub
-          </motion.a>
+            Try Now
+          </motion.button>
 
           {/* Mobile Hamburger */}
           <button
@@ -144,7 +220,7 @@ export default function Navbar() {
             }}
             className="flex md:hidden"
           >
-            {mobileOpen ? <FiX style={{ fontSize: '22px' }} /> : <FiMenu style={{ fontSize: '22px' }} />}
+            {mobileOpen ? <FiX style={{ fontSize: '24px' }} /> : <FiMenu style={{ fontSize: '24px' }} />}
           </button>
         </div>
       </div>
@@ -157,22 +233,26 @@ export default function Navbar() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             style={{
-              borderTop: '1px solid rgba(255,255,255,0.06)',
-              padding: '8px 20px 16px',
-              display: 'flex', flexDirection: 'column', gap: '4px',
+              background: 'rgba(6, 6, 8, 0.95)',
+              borderTop: '1px solid rgba(255,255,255,0.05)',
+              padding: '12px 24px 20px',
+              display: 'flex', flexDirection: 'column', gap: '6px',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
             }}
           >
             {NAV_LINKS.map((link) => (
               <button
                 key={link}
-                onClick={() => { setActive(link); setMobileOpen(false); }}
+                onClick={() => { handleScrollTo(link); setMobileOpen(false); }}
                 style={{
                   textAlign: 'left', padding: '12px 16px',
-                  borderRadius: '10px', fontSize: '14px', fontWeight: 500,
-                  color: active === link ? '#f97316' : 'rgba(255,255,255,0.65)',
-                  background: active === link ? 'rgba(249,115,22,0.07)' : 'transparent',
+                  borderRadius: '12px', fontSize: '15px', fontWeight: 500,
+                  color: active === link ? '#f97316' : 'rgba(255,255,255,0.7)',
+                  background: active === link ? 'rgba(249,115,22,0.08)' : 'transparent',
                   border: 'none', cursor: 'pointer',
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  transition: 'all 0.2s ease',
                 }}
               >
                 {link}
