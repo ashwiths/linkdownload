@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiDownload, FiMenu, FiX } from 'react-icons/fi';
+import { FiDownload, FiMenu, FiX, FiUser } from 'react-icons/fi';
 
-const NAV_LINKS = ['Home', 'How It Works', 'Supported', 'Features', 'FAQ'];
+const NAV_LINKS = ['Home', 'How It Works', 'Supported', 'Features', 'FAQ', 'About Us'];
 
 const LINK_MAP = {
   'Home': 'home',
   'How It Works': 'how-it-works',
   'Supported': 'supported',
   'Features': 'features',
-  'FAQ': 'faq'
+  'FAQ': 'faq',
+  'About Us': 'about-us'
 };
 
 export default function Navbar() {
@@ -137,8 +138,14 @@ export default function Navbar() {
                   cursor: 'pointer',
                   fontFamily: "'Space Grotesk', sans-serif",
                   transition: 'color 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
                 }}
               >
+                {link === 'About Us' && (
+                  <FiUser style={{ fontSize: '14px', opacity: 0.8 }} />
+                )}
                 {link}
                 {active === link && (
                   <motion.div

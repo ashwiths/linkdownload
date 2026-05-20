@@ -6,6 +6,7 @@ import SupportedPlatforms from './components/SupportedPlatforms';
 import WhyChoose from './components/WhyChoose';
 import Faq from './components/Faq';
 import BottomBar from './components/BottomBar';
+import Footer from './components/Footer';
 
 export default function LandingPage() {
   return (
@@ -87,6 +88,9 @@ export default function LandingPage() {
           <BottomBar />
         </div>
       </div>
+
+      {/* ── Footer ── */}
+      <Footer />
     </div>
   );
 }
